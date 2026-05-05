@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image Database</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f4f4f4; color: #222; padding: 2rem; }
+    h1 { margin-bottom: 1.5rem; font-size: 1.6rem; }
+    #upload-section {
+      background: white; border: 2px dashed #ccc; border-radius: 8px;
+      padding: 2rem; text-align: center; margin-bottom: 2rem; transition: border-color 0.2s;
+    }
+    #upload-section:hover { border-color: #555; }
+    #upload-section input { display: none; }
+    #upload-section label { display: block; cursor: pointer; font-size: 1rem; color: #555; }
+    #upload-section label span {
+      display: inline-block; margin-top: 0.5rem; padding: 0.5rem 1.2rem;
+      background: #222; color: white; border-radius: 4px; font-size: 0.9rem;
+    }
+    #progress-bar-wrap {
+      display: none; background: #ddd; border-radius: 4px; height: 8px; margin-top: 1rem; overflow: hidden;
+    }
+    #progress-bar { height: 100%; background: #222; width: 0%; transition: width 0.2s; }
+    #status { margin-top: 0.5rem; font-size: 0.85rem; color: #555; }
+    #gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
+    .image-card { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    .image-card img { width: 100%; height: 160px; object-fit: cover; display: block; }
+    .image-card-info { padding: 0.5rem 0.75rem; font-size: 0.8rem; color: #666; }
+    .image-card-info p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .image-card-info button {
+      margin-top: 0.4rem; background: none; border: 1px solid #ddd; border-radius: 4px;
+      padding: 0.2rem 0.5rem; cursor: pointer; font-size: 0.75rem; color: #c00;
+    }
+    .image-card-info button:hover { background: #fee; }
+    #empty-state { color: #999; text-align: center; padding: 2rem; }
+  </style>
+</head>
+<body>
+
+<h1>🖼 Image Database</h1>
+
+<div id="upload-section">
+  <label for="file-input">
+    Drop an image here or click to upload
+    <br />
+    <span>Choose File</span>
+  </label>
+  <input type="file" id="file-input" accept="image/*" />
+  <div id="progress-bar-wrap">
+    <div id="progress-bar"></div>
+  </div>
+  <p id="status"></p>
+</div>
+
+<div id="gallery">
+  <p id="empty-state">No images yet. Upload one above!</p>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC2sccaYxF0KBAH1ZHRUvjwsl5dWo2IdCw",
+    authDomain: "kbh-arkiv.firebaseapp.com",
+    projectId: "kbh-arkiv",
+    storageBucket: "kbh-arkiv.firebasestorage.app",
+    messagingSenderId: "938011502039",
+    appId: "1:938011502039:web:86343db1471f9939551792"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+
+  const fileInput = document.getElementById("file-input");
+  const progressWrap = document.getElementById("progress-bar-wrap");
+  const progressBar = document.getElementById("progress-bar");
+  const statusEl = document.getElementById("status");
+  const gallery = document.getElementById("gallery");
+
+  fileInput.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const storageRef = ref(storage, `images/${Date.now()}_${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    progressWrap.style.display = "block";
+    statusEl.textContent = "Uploading…";
+
+    uploadTask.on("state_changed",
+      (snapshot) => {
+        const pct = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        progressBar.style.width = pct + "%";
+      },
+      (error) => {
+        statusEl.textContent = "Upload failed: " + error.message;
+        console.error(error);
+      },
+      async () => {
+        const url = await getDownloadURL(uploadTask.snapshot.ref);
+        const docRef = await addDoc(collection(db, "images"), {
+          url,
+          name: file.name,
+          size: file.size,
+          storagePath: storageRef.fullPath,
+          uploadedAt: serverTimestamp(),
+        });
+
+        statusEl.textContent = "Upload complete!";
+        progressBar.style.width = "0%";
+        progressWrap.style.display = "none";
+        fileInput.value = "";
+
+        addCardToGallery({ id: docRef.id, url, name: file.name, storagePath: storageRef.fullPath });
+      }
+    );
+  });
+
+  async function loadImages() {
+    const q = query(collection(db, "images"), orderBy("uploadedAt", "desc"));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return;
+    document.getElementById("empty-state")?.remove();
+    snapshot.forEach((docSnap) => {
+      addCardToGallery({ id: docSnap.id, ...docSnap.data() });
+    });
+  }
+
+  function addCardToGallery({ id, url, name, storagePath }) {
+    document.getElementById("empty-state")?.remove();
+    const card = document.createElement("div");
+    card.className = "image-card";
+    card.innerHTML = `
+      <img src="${url}" alt="${name}" loading="lazy" />
+      <div class="image-card-info">
+        <p title="${name}">${name}</p>
+        <button>🗑 Delete</button>
+      </div>
+    `;
+    gallery.prepend(card);
+    card.querySelector("button").addEventListener("click", () => deleteImage(id, storagePath, card));
+  }
+
+  async function deleteImage(docId, storagePath, cardEl) {
+    if (!confirm("Delete this image?")) return;
+    try {
+      await deleteDoc(doc(db, "images", docId));
+      await deleteObject(ref(storage, storagePath));
+      cardEl.remove();
+      if (!gallery.querySelector(".image-card")) {
+        gallery.innerHTML = '<p id="empty-state">No images yet. Upload one above!</p>';
+      }
+    } catch (err) {
+      alert("Error deleting: " + err.message);
+    }
+  }
+
+  loadImages();
+</script>
+</body>
+</html>

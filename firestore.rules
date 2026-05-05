@@ -1,0 +1,15 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /images/{imageId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['url', 'name', 'uploadedAt', 'size'])
+                    && request.resource.data.url is string
+                    && request.resource.data.name is string
+                    && request.resource.data.size is number;
+      allow delete: if true;
+      allow update: if false;
+    }
+  }
+}
