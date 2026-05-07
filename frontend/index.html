@@ -1,4 +1,3 @@
-why does it show placehold images from my firebase database for images that i have deleted:
 
 <!DOCTYPE html>
 <html lang="en">
@@ -6,169 +5,92 @@ why does it show placehold images from my firebase database for images that i ha
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>KBH Arkiv</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: sans-serif;
-      background: #111;
-      color: #fff;
-      height: 100vh;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    #toolbar {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      background: #1a1a1a;
-      border-bottom: 1px solid #333;
-      z-index: 10;
-      flex-shrink: 0;
-    }
-
-    #toolbar h1 {
-      font-size: 1rem;
-      font-weight: 500;
-      color: #fff;
-      margin-right: auto;
-    }
-
-    #upload-btn {
-      background: #fff;
-      color: #111;
-      border: none;
-      border-radius: 6px;
-      padding: 6px 14px;
-      font-size: 0.85rem;
-      cursor: pointer;
-      font-weight: 500;
-    }
-    #upload-btn:hover { background: #ddd; }
-
-    #upload-panel {
-      display: none;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: #1a1a1a;
-      border: 1px solid #444;
-      border-radius: 12px;
-      padding: 2rem;
-      z-index: 100;
-      width: 320px;
-      text-align: center;
-    }
-
-    #upload-panel h2 {
-      font-size: 1rem;
-      font-weight: 500;
-      margin-bottom: 1rem;
-    }
-
-    #upload-panel label {
-      display: block;
-      border: 2px dashed #444;
-      border-radius: 8px;
-      padding: 1.5rem;
-      cursor: pointer;
-      color: #aaa;
-      font-size: 0.85rem;
-      margin-bottom: 1rem;
-    }
-    #upload-panel label:hover { border-color: #888; }
-    #upload-panel input { display: none; }
-
-    #progress-bar-wrap {
-      display: none;
-      background: #333;
-      border-radius: 4px;
-      height: 6px;
-      margin-bottom: 0.5rem;
-      overflow: hidden;
-    }
-    #progress-bar { height: 100%; background: #fff; width: 0%; transition: width 0.2s; }
-    #status { font-size: 0.8rem; color: #aaa; margin-bottom: 1rem; }
-
-    #close-btn {
-      background: none;
-      border: 1px solid #444;
-      color: #aaa;
-      border-radius: 6px;
-      padding: 5px 12px;
-      font-size: 0.8rem;
-      cursor: pointer;
-    }
-    #close-btn:hover { background: #333; }
-
-    #overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.6);
-      z-index: 99;
-    }
-
-    #canvas-wrap {
-      flex: 1;
-      position: relative;
-      overflow: hidden;
-      cursor: grab;
-      user-select: none;
-    }
-    #canvas-wrap.dragging { cursor: grabbing; }
-
-    #canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
-
-    .img-card {
-      position: absolute;
-      border-radius: 8px;
-      overflow: hidden;
-      background: #222;
-      border: 1px solid #333;
-    }
-    .img-card img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      draggable: false;
-    }
-
-    #hint {
-      position: absolute;
-      bottom: 16px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 0.75rem;
-      color: #555;
-      pointer-events: none;
-    }
-
-    #loading {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #555;
-      font-size: 0.9rem;
-    }
-  </style>
+  <link rel="stylesheet" href="./styles/collection.css" />
 </head>
 <body>
 
-<div id="toolbar">
-  <h1>KBH Arkiv</h1>
-  <button id="upload-btn">+ Upload</button>
+<div id="topbar">
+  <div id="brand">
+    KBH <span class="sub">collection</span>
+  </div>
+  <button id="burger-btn" aria-label="Open menu" type="button">
+    <span class="burger-lines">
+      <span class="burger-line"></span>
+      <span class="burger-line"></span>
+      <span class="burger-line"></span>
+    </span>
+  </button>
+</div>
+
+<div id="menu-overlay"></div>
+
+<div id="sidebar">
+  <div class="sidebar-section">
+    <button id="upload-btn" class="menu-item" type="button">
+      <span class="icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 16V4"></path>
+          <path d="M8 8l4-4 4 4"></path>
+          <path d="M20 20H4"></path>
+        </svg>
+      </span>
+      <span class="label">Upload</span>
+    </button>
+  </div>
+
+  <div class="sidebar-section">
+    <button class="menu-item" type="button" id="menu-filter" aria-label="Filter">
+      <span class="icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 21v-7"></path>
+          <path d="M4 10V3"></path>
+          <path d="M12 21v-9"></path>
+          <path d="M12 8V3"></path>
+          <path d="M20 21v-5"></path>
+          <path d="M20 12V3"></path>
+          <path d="M2 10h4"></path>
+          <path d="M10 8h4"></path>
+          <path d="M18 12h4"></path>
+        </svg>
+      </span>
+      <span class="label">Filtrér</span>
+    </button>
+
+    <button class="menu-item" type="button" id="menu-search" aria-label="Search">
+      <span class="icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="M21 21l-4.3-4.3"></path>
+        </svg>
+      </span>
+      <span class="label">Søg</span>
+    </button>
+  </div>
+  <div class="sidebar-section">
+    <button class="menu-item" type="button" id="menu-api" aria-label="API">
+      <span class="label">&lt;API/&gt;</span>
+    </button>
+
+    <button class="menu-item" type="button" id="menu-about" aria-label="Om projektet">
+      <span class="label">OM PROJEKTET</span>
+    </button>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-subheader">Din profil</div>
+    <button class="menu-item" type="button" id="menu-saved" aria-label="Saved images">
+      <span class="icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+        </svg>
+      </span>
+      <span class="label">Gemte billeder</span>
+    </button>
+  </div>
+
+  <div class="sidebar-footer">
+    En fælles åbning af bibliotek og museumstanker i København. (Placeholder text)
+  </div>
 </div>
 
 <div id="overlay"></div>
@@ -192,224 +114,7 @@ why does it show placehold images from my firebase database for images that i ha
   <div id="hint">Click and drag to explore</div>
 </div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, serverTimestamp }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  import { getStorage, ref, uploadBytesResumable, getDownloadURL }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyC2sccaYxF0KBAH1ZHRUvjwsl5dWo2IdCw",
-    authDomain: "kbh-arkiv.firebaseapp.com",
-    projectId: "kbh-arkiv",
-    storageBucket: "kbh-arkiv.firebasestorage.app",
-    messagingSenderId: "938011502039",
-    appId: "1:938011502039:web:86343db1471f9939551792"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const storage = getStorage(app);
-
-  let allImages = [];
-  let offsetX = 0, offsetY = 0;
-  let dragging = false, startX, startY;
-  const cards = new Map();
-  let renderQueued = false;
-
-  const CELL = 220;
-  const GAP = 16;
-  const STEP = CELL + GAP;
-  const PRELOAD_CELLS = 1;
-
-  const wrap = document.getElementById('canvas-wrap');
-  const canvas = document.getElementById('canvas');
-  const loading = document.getElementById('loading');
-
-  function updateCanvasTransform() {
-    canvas.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
-  }
-
-  function queueRender() {
-    if (renderQueued) return;
-    renderQueued = true;
-    requestAnimationFrame(() => {
-      renderQueued = false;
-      render();
-    });
-  }
-
-  // ── Load images from Firebase ────────────────
-  async function loadImages() {
-    const snapshot = await getDocs(collection(db, 'images'));
-    snapshot.forEach(doc => allImages.push(doc.data()));
-    loading.style.display = 'none';
-    render();
-  }
-
-  // ── Get a deterministic image for a grid cell ─
-  function getImageFor(col, row) {
-    if (!allImages.length) return null;
-    const seed = Math.abs((col * 73856093) ^ (row * 19349663)) % allImages.length;
-    return allImages[seed];
-  }
-
-  // ── Render visible cells ─────────────────────
-  function render() {
-    const W = wrap.clientWidth;
-    const H = wrap.clientHeight;
-
-    const startCol = Math.floor(-offsetX / STEP) - PRELOAD_CELLS;
-    const endCol = startCol + Math.ceil(W / STEP) + (PRELOAD_CELLS * 2);
-    const startRow = Math.floor(-offsetY / STEP) - PRELOAD_CELLS;
-    const endRow = startRow + Math.ceil(H / STEP) + (PRELOAD_CELLS * 2);
-    const needed = new Set();
-
-    for (let col = startCol; col <= endCol; col++) {
-      for (let row = startRow; row <= endRow; row++) {
-        const key = `${col},${row}`;
-        needed.add(key);
-        if (cards.has(key)) continue;
-
-        const img = getImageFor(col, row);
-        if (!img) continue;
-
-        const card = document.createElement('div');
-        card.className = 'img-card';
-        card.dataset.key = key;
-        card.style.left = (col * STEP) + 'px';
-        card.style.top = (row * STEP) + 'px';
-        card.style.width = CELL + 'px';
-        card.style.height = CELL + 'px';
-
-        const el = document.createElement('img');
-        el.src = img.url;
-        el.alt = img.name || '';
-        el.draggable = false;
-        el.loading = 'lazy';
-        el.decoding = 'async';
-        card.appendChild(el);
-        canvas.appendChild(card);
-        cards.set(key, card);
-      }
-    }
-
-    updateCanvasTransform();
-
-    cards.forEach((el, key) => {
-      if (needed.has(key)) return;
-      el.remove();
-      cards.delete(key);
-    });
-  }
-
-  // ── Mouse drag ───────────────────────────────
-  wrap.addEventListener('mousedown', e => {
-    dragging = true;
-    startX = e.clientX - offsetX;
-    startY = e.clientY - offsetY;
-    wrap.classList.add('dragging');
-  });
-
-  window.addEventListener('mousemove', e => {
-    if (!dragging) return;
-    offsetX = e.clientX - startX;
-    offsetY = e.clientY - startY;
-    updateCanvasTransform();
-    queueRender();
-  });
-
-  window.addEventListener('mouseup', () => {
-    dragging = false;
-    wrap.classList.remove('dragging');
-  });
-
-  // ── Touch drag ───────────────────────────────
-  wrap.addEventListener('touchstart', e => {
-    const t = e.touches[0];
-    dragging = true;
-    startX = t.clientX - offsetX;
-    startY = t.clientY - offsetY;
-  }, { passive: true });
-
-  wrap.addEventListener('touchmove', e => {
-    if (!dragging) return;
-    const t = e.touches[0];
-    offsetX = t.clientX - startX;
-    offsetY = t.clientY - startY;
-    updateCanvasTransform();
-    queueRender();
-  }, { passive: true });
-
-  wrap.addEventListener('touchend', () => { dragging = false; });
-
-  // ── Upload panel ─────────────────────────────
-  const uploadBtn = document.getElementById('upload-btn');
-  const uploadPanel = document.getElementById('upload-panel');
-  const overlay = document.getElementById('overlay');
-  const closeBtn = document.getElementById('close-btn');
-  const fileInput = document.getElementById('file-input');
-  const progressWrap = document.getElementById('progress-bar-wrap');
-  const progressBar = document.getElementById('progress-bar');
-  const statusEl = document.getElementById('status');
-
-  function openPanel() {
-    uploadPanel.style.display = 'block';
-    overlay.style.display = 'block';
-  }
-  function closePanel() {
-    uploadPanel.style.display = 'none';
-    overlay.style.display = 'none';
-    statusEl.textContent = '';
-    progressWrap.style.display = 'none';
-    progressBar.style.width = '0%';
-    fileInput.value = '';
-  }
-
-  uploadBtn.addEventListener('click', openPanel);
-  closeBtn.addEventListener('click', closePanel);
-  overlay.addEventListener('click', closePanel);
-
-  fileInput.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const storageRef = ref(storage, `images/${Date.now()}_${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
-
-    progressWrap.style.display = 'block';
-    statusEl.textContent = 'Uploading…';
-
-    uploadTask.on('state_changed',
-      snapshot => {
-        const pct = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        progressBar.style.width = pct + '%';
-      },
-      error => {
-        statusEl.textContent = 'Upload failed: ' + error.message;
-      },
-      async () => {
-        const url = await getDownloadURL(uploadTask.snapshot.ref);
-        const newDoc = await addDoc(collection(db, 'images'), {
-          url,
-          name: file.name,
-          size: file.size,
-          storagePath: storageRef.fullPath,
-          uploadedAt: serverTimestamp(),
-        });
-
-        const newImage = { url, name: file.name, storagePath: storageRef.fullPath };
-        allImages.push(newImage);
-
-        statusEl.textContent = 'Upload complete!';
-        setTimeout(closePanel, 1200);
-      }
-    );
-  });
-
-  window.addEventListener('resize', queueRender);
-  loadImages();
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script type="module" src="./scripts/collection.js"></script>
 </body>
 </html>
