@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "kbh-arkiv"
-  }
+    "default": "kbh-samlet2",
+    "firebase use kbh-samlet": "kbh-samlet2"
+  },
+  "targets": {},
+  "etags": {}
 }

@@ -1,21 +1,28 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAnalytics, isSupported as analyticsIsSupported } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
 import { getFirestore, collection, addDoc, getDocs, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC2sccaYxF0KBAH1ZHRUvjwsl5dWo2IdCw",
-  authDomain: "kbh-arkiv.firebaseapp.com",
-  projectId: "kbh-arkiv",
-  storageBucket: "kbh-arkiv.firebasestorage.app",
-  messagingSenderId: "938011502039",
-  appId: "1:938011502039:web:86343db1471f9939551792"
+  apiKey: "AIzaSyAYVVPPWW2czYfd4lqkqEMsSNzlYacAIdE",
+  authDomain: "kbh-samlet2.firebaseapp.com",
+  projectId: "kbh-samlet2",
+  storageBucket: "kbh-samlet2.firebasestorage.app",
+  messagingSenderId: "97281184924",
+  appId: "1:97281184924:web:31da88dc3d983bc53a4959",
+  measurementId: "G-4V02WQTVVT"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
+analyticsIsSupported()
+  .then(supported => {
+    if (supported) getAnalytics(app);
+  })
+  .catch(() => {});
 
 let allImages = [];
 let offsetX = 0, offsetY = 0;
@@ -23,6 +30,9 @@ let dragging = false, startX, startY;
 let velocityX = 0, velocityY = 0;
 let lastPointerX = 0, lastPointerY = 0, lastPointerTime = 0;
 let inertiaTween = null;
+let introTween = null;
+let keyPanTween = null;
+let hasUserNavigated = false;
 const cards = new Map();
 const aspectRatioCache = new Map();
 let renderQueued = false;
@@ -36,6 +46,7 @@ const GRID_X_OFFSET = -Math.round(CELL / 2);
 const wrap = document.getElementById('canvas-wrap');
 const canvas = document.getElementById('canvas');
 const loading = document.getElementById('loading');
+wrap.setAttribute('tabindex', '0');
 
 function updateCanvasTransform() {
   canvas.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
@@ -50,15 +61,89 @@ function queueRender() {
   });
 }
 
+function panBy(dx, dy) {
+  stopIntroNudge();
+  stopInertia();
+  offsetX += dx;
+  offsetY += dy;
+  updateCanvasTransform();
+  queueRender();
+}
+
+function panByWithGsap(dx, dy) {
+  stopIntroNudge();
+  stopInertia();
+  const g = window.gsap;
+  if (!g) {
+    panBy(dx, dy);
+    return;
+  }
+
+  if (keyPanTween) {
+    keyPanTween.kill();
+    keyPanTween = null;
+  }
+
+  const state = { x: offsetX, y: offsetY };
+  keyPanTween = g.to(state, {
+    x: offsetX + dx,
+    y: offsetY + dy,
+    duration: KEYBOARD_PAN_DURATION,
+    ease: MOMENTUM_EASE,
+    overwrite: true,
+    onUpdate() {
+      offsetX = state.x;
+      offsetY = state.y;
+      updateCanvasTransform();
+      queueRender();
+    },
+    onComplete() {
+      keyPanTween = null;
+    },
+  });
+}
+
 const MOMENTUM_EASE = 'power2.out';
 const MOMENTUM_MULTIPLIER_MS = 900; // velocity is px/ms → distance = v * multiplier
 const MOMENTUM_DURATION_MIN = 0.25;
 const MOMENTUM_DURATION_MAX = 1.1;
+const KEYBOARD_PAN_STEP = 110;
+const KEYBOARD_PAN_DURATION = 0.22;
 
 function stopInertia() {
   if (!inertiaTween) return;
   inertiaTween.kill();
   inertiaTween = null;
+}
+
+function stopIntroNudge() {
+  if (!introTween) return;
+  introTween.kill();
+  introTween = null;
+}
+
+function startIntroNudge() {
+  stopIntroNudge();
+  const g = window.gsap;
+  if (!g) return;
+
+  const state = { x: offsetX, y: offsetY };
+  introTween = g.to(state, {
+    x: offsetX - 150,
+    y: offsetY - 110,
+    duration: 1.0,
+    delay: 0.35,
+    ease: 'power2.out',
+    onUpdate() {
+      offsetX = state.x;
+      offsetY = state.y;
+      updateCanvasTransform();
+      queueRender();
+    },
+    onComplete() {
+      introTween = null;
+    },
+  });
 }
 
 function startInertia() {
@@ -102,6 +187,7 @@ function startInertia() {
 }
 
 function startDrag(clientX, clientY) {
+  stopIntroNudge();
   stopInertia();
   dragging = true;
   startX = clientX - offsetX;
@@ -194,6 +280,7 @@ async function loadImages() {
   snapshot.forEach(doc => allImages.push(doc.data()));
   loading.style.display = 'none';
   render();
+  startIntroNudge();
 }
 
 // ── Get a deterministic image for a grid cell ─
@@ -294,6 +381,8 @@ function render() {
 
 // ── Drag interactions ─────────────────────────
 wrap.addEventListener('mousedown', e => {
+  wrap.focus();
+  markUserNavigated();
   startDrag(e.clientX, e.clientY);
   wrap.classList.add('dragging');
 });
@@ -310,6 +399,8 @@ window.addEventListener('mouseup', () => {
 // ── Touch drag ───────────────────────────────
 wrap.addEventListener('touchstart', e => {
   const t = e.touches[0];
+  wrap.focus();
+  markUserNavigated();
   startDrag(t.clientX, t.clientY);
   wrap.classList.add('dragging');
 }, { passive: true });
@@ -324,6 +415,14 @@ wrap.addEventListener('touchend', () => {
   wrap.classList.remove('dragging');
 });
 
+window.addEventListener('wheel', e => {
+  const onCanvas = e.target instanceof Element && !!e.target.closest('#canvas-wrap');
+  if (!onCanvas) return;
+  e.preventDefault();
+  markUserNavigated();
+  panBy(-e.deltaX, -e.deltaY);
+}, { passive: false });
+
 // ── Upload + burger menu ──────────────────────
 const uploadBtn = document.getElementById('upload-btn');
 const uploadPanel = document.getElementById('upload-panel');
@@ -337,39 +436,202 @@ const statusEl = document.getElementById('status');
 const burgerBtn = document.getElementById('burger-btn');
 const sidebar = document.getElementById('sidebar');
 const menuOverlay = document.getElementById('menu-overlay');
+let menuOpen = false;
+let menuTween = null;
 
-function openMenu() {
-  sidebar.classList.add('open');
-  menuOverlay.classList.add('open');
+function setMenuOpen(nextOpen, animate = true) {
+  const g = window.gsap;
+  menuOpen = nextOpen;
+
+  if (!g || !animate) {
+    sidebar.style.transform = nextOpen ? 'translateY(0%)' : 'translateY(-110%)';
+    menuOverlay.style.display = nextOpen ? 'block' : 'none';
+    menuOverlay.style.opacity = nextOpen ? '1' : '0';
+    return;
+  }
+
+  if (menuTween) {
+    menuTween.kill();
+    menuTween = null;
+  }
+
+  if (nextOpen) menuOverlay.style.display = 'block';
+
+  menuTween = g.timeline({
+    defaults: { overwrite: true },
+    onComplete() {
+      menuTween = null;
+      if (!menuOpen) menuOverlay.style.display = 'none';
+    },
+  });
+
+  menuTween.to(sidebar, {
+    yPercent: nextOpen ? 0 : -110,
+    duration: 0.34,
+    ease: 'power3.out',
+  }, 0);
+  menuTween.to(menuOverlay, {
+    opacity: nextOpen ? 1 : 0,
+    duration: 0.24,
+    ease: 'power2.out',
+  }, 0);
 }
 
-function closeMenu() {
-  sidebar.classList.remove('open');
-  menuOverlay.classList.remove('open');
+function openMenu(animate = true) {
+  setMenuOpen(true, animate);
+}
+
+function closeMenu(animate = true) {
+  setMenuOpen(false, animate);
+}
+
+function closeMenuOnNavigate() {
+  if (!hasUserNavigated || !menuOpen) return;
+  closeMenu(true);
+}
+
+function markUserNavigated() {
+  hasUserNavigated = true;
+  closeMenuOnNavigate();
 }
 
 const menuApi = document.getElementById('menu-api');
 const menuAbout = document.getElementById('menu-about');
 menuApi?.addEventListener('click', () => {
-  closeMenu();
   console.log('API button clicked (not implemented).');
 });
 menuAbout?.addEventListener('click', () => {
-  closeMenu();
   console.log('OM PROJEKTET button clicked (not implemented).');
 });
 
-burgerBtn.addEventListener('click', () => {
-  if (sidebar.classList.contains('open')) closeMenu();
-  else openMenu();
+function rotateLabelText(text, step) {
+  const chars = Array.from(text);
+  if (chars.length <= 1) return text;
+  const n = ((step % chars.length) + chars.length) % chars.length;
+  return chars.slice(n).join('') + chars.slice(0, n).join('');
+}
+
+const menuLabelStates = new WeakMap();
+
+function getMenuLabelState(button) {
+  if (menuLabelStates.has(button)) return menuLabelStates.get(button);
+  const labelEl = button.querySelector('.label');
+  if (!labelEl) return null;
+  const state = {
+    labelEl,
+    baseText: labelEl.textContent || '',
+    hoverInterval: null,
+    clickTween: null,
+    clickFadeTween: null,
+    step: 0,
+  };
+  menuLabelStates.set(button, state);
+  return state;
+}
+
+function stopHoverCycle(state) {
+  if (!state?.hoverInterval) return;
+  clearInterval(state.hoverInterval);
+  state.hoverInterval = null;
+  state.step = 0;
+  state.labelEl.textContent = state.baseText;
+}
+
+function startHoverCycle(state) {
+  if (!state || state.hoverInterval) return;
+  if (state.clickTween) {
+    state.clickTween.kill();
+    state.clickTween = null;
+  }
+  if (state.clickFadeTween) {
+    state.clickFadeTween.kill();
+    state.clickFadeTween = null;
+  }
+  state.labelEl.style.opacity = '1';
+  state.hoverInterval = setInterval(() => {
+    state.step += 1;
+    state.labelEl.textContent = rotateLabelText(state.baseText, state.step);
+  }, 170);
+}
+
+function playClickCycle(state) {
+  if (!state) return;
+  stopHoverCycle(state);
+
+  const g = window.gsap;
+  if (!g) return;
+
+  if (state.clickTween) state.clickTween.kill();
+  if (state.clickFadeTween) state.clickFadeTween.kill();
+
+  const chars = Array.from(state.baseText);
+  if (chars.length <= 1) return;
+
+  const proxy = { frame: 0 };
+  const turns = chars.length * 3;
+  state.labelEl.style.opacity = '0.55';
+
+  state.clickTween = g.to(proxy, {
+    frame: turns,
+    duration: 1.0,
+    ease: 'none',
+    onUpdate() {
+      const step = Math.floor(proxy.frame);
+      state.labelEl.textContent = rotateLabelText(state.baseText, step);
+    },
+    onComplete() {
+      state.labelEl.textContent = state.baseText;
+      state.clickTween = null;
+      state.clickFadeTween = g.to(state.labelEl, {
+        opacity: 1,
+        duration: 1.1,
+        ease: 'power2.out',
+        onComplete() {
+          state.clickFadeTween = null;
+        },
+      });
+    },
+  });
+}
+
+document.querySelectorAll('#sidebar .menu-item').forEach(button => {
+  const state = getMenuLabelState(button);
+  if (!state) return;
+  button.addEventListener('mouseenter', () => startHoverCycle(state));
+  button.addEventListener('mouseleave', () => stopHoverCycle(state));
+  button.addEventListener('click', () => playClickCycle(state));
 });
-menuOverlay.addEventListener('click', closeMenu);
-window.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeMenu();
+
+burgerBtn.addEventListener('click', () => {
+  if (menuOpen) closeMenu(true);
+  else openMenu(true);
+});
+menuOverlay.addEventListener('click', () => closeMenu(true));
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeMenu(true);
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    markUserNavigated();
+    panByWithGsap(0, KEYBOARD_PAN_STEP);
+  }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    markUserNavigated();
+    panByWithGsap(0, -KEYBOARD_PAN_STEP);
+  }
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    markUserNavigated();
+    panByWithGsap(KEYBOARD_PAN_STEP, 0);
+  }
+  if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    markUserNavigated();
+    panByWithGsap(-KEYBOARD_PAN_STEP, 0);
+  }
 });
 
 function openPanel() {
-  closeMenu();
   uploadPanel.style.display = 'block';
   overlay.style.display = 'block';
 }
@@ -393,7 +655,10 @@ fileInput.addEventListener('change', async (e) => {
   const aspectRatio = await readFileAspectRatio(file);
 
   const storageRef = ref(storage, `images/${Date.now()}_${file.name}`);
-  const uploadTask = uploadBytesResumable(storageRef, file);
+  const metadata = {
+    contentType: file.type || 'image/jpeg',
+  };
+  const uploadTask = uploadBytesResumable(storageRef, file, metadata);
 
   progressWrap.style.display = 'block';
   statusEl.textContent = 'Uploading…';
@@ -427,5 +692,6 @@ fileInput.addEventListener('change', async (e) => {
 });
 
 window.addEventListener('resize', queueRender);
+openMenu(false);
 loadImages();
 

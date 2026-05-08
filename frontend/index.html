@@ -5,70 +5,47 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>KBH Arkiv</title>
-  <link rel="stylesheet" href="./styles/collection.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Pavanam&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles/collection.css?v=6" />
 </head>
 <body>
 
 <div id="topbar">
-  <div id="brand">
-    KBH <span class="sub">collection</span>
-  </div>
   <button id="burger-btn" aria-label="Open menu" type="button">
-    <span class="burger-lines">
-      <span class="burger-line"></span>
-      <span class="burger-line"></span>
-      <span class="burger-line"></span>
-    </span>
+    <img src="./icons/burgermenu-icon.svg" alt="" />
   </button>
 </div>
 
 <div id="menu-overlay"></div>
 
 <div id="sidebar">
-  <div class="sidebar-section">
+  <div class="sidebar-section menu-group menu-group-1">
     <button id="upload-btn" class="menu-item" type="button">
       <span class="icon" aria-hidden="true">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 16V4"></path>
-          <path d="M8 8l4-4 4 4"></path>
-          <path d="M20 20H4"></path>
-        </svg>
+        <img src="./icons/upload-icon.svg" alt="" width="16" height="15" />
       </span>
       <span class="label">Upload</span>
     </button>
-  </div>
-
-  <div class="sidebar-section">
     <button class="menu-item" type="button" id="menu-filter" aria-label="Filter">
       <span class="icon" aria-hidden="true">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 21v-7"></path>
-          <path d="M4 10V3"></path>
-          <path d="M12 21v-9"></path>
-          <path d="M12 8V3"></path>
-          <path d="M20 21v-5"></path>
-          <path d="M20 12V3"></path>
-          <path d="M2 10h4"></path>
-          <path d="M10 8h4"></path>
-          <path d="M18 12h4"></path>
-        </svg>
+        <img src="./icons/filtrer-icon.svg" alt="" width="17" height="15" />
       </span>
       <span class="label">Filtrér</span>
     </button>
 
     <button class="menu-item" type="button" id="menu-search" aria-label="Search">
       <span class="icon" aria-hidden="true">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"></circle>
-          <path d="M21 21l-4.3-4.3"></path>
-        </svg>
+        <img src="./icons/søg-icon.svg" alt="" width="13" height="15" />
       </span>
       <span class="label">Søg</span>
     </button>
   </div>
-  <div class="sidebar-section">
+
+  <div class="sidebar-section menu-group menu-group-2">
     <button class="menu-item" type="button" id="menu-api" aria-label="API">
-      <span class="label">&lt;API/&gt;</span>
+      <span class="label">BRUG VORES &lt;API/&gt;</span>
     </button>
 
     <button class="menu-item" type="button" id="menu-about" aria-label="Om projektet">
@@ -76,20 +53,26 @@
     </button>
   </div>
 
-  <div class="sidebar-section">
-    <div class="sidebar-subheader">Din profil</div>
+  <div class="sidebar-section menu-group menu-group-3">
+    <button class="menu-item" type="button" id="menu-profile" aria-label="Din profil">
+      <span class="label">Din profil</span>
+    </button>
     <button class="menu-item" type="button" id="menu-saved" aria-label="Saved images">
       <span class="icon" aria-hidden="true">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-        </svg>
+        <img src="./icons/gem-icon.svg" alt="" width="16" height="16" />
       </span>
       <span class="label">Gemte billeder</span>
     </button>
   </div>
 
   <div class="sidebar-footer">
-    En fælles åbning af bibliotek og museumstanker i København. (Placeholder text)
+    En fælles åben billedesamling af Københavns detaljer skabt af jer.
+  </div>
+
+  <div class="sidebar-logos" aria-label="Partner logos">
+    <img src="./logos/københavnsmuseum-logo.png" alt="Københavns Museum" />
+    <img src="./logos/københavnskommune-logo.png" alt="Københavns Kommune" />
+    <img src="./logos/detkongeligebibliotek-logo.png" alt="Det Kongelige Bibliotek" />
   </div>
 </div>
 
@@ -111,10 +94,9 @@
 <div id="canvas-wrap">
   <div id="canvas"></div>
   <div id="loading">Loading images...</div>
-  <div id="hint">Click and drag to explore</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script type="module" src="./scripts/collection.js"></script>
+<script type="module" src="./scripts/collection.js?v=5"></script>
 </body>
 </html>
