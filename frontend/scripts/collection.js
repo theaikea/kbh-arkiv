@@ -274,6 +274,37 @@ function readFileAspectRatio(file) {
   });
 }
 
+function isHeicFile(file) {
+  const type = (file.type || '').toLowerCase();
+  const name = (file.name || '').toLowerCase();
+  return type === 'image/heic'
+    || type === 'image/heif'
+    || name.endsWith('.heic')
+    || name.endsWith('.heif');
+}
+
+async function normalizeUploadFile(file) {
+  if (!isHeicFile(file)) return file;
+
+  const converter = window.heic2any;
+  if (!converter) {
+    throw new Error('HEIC conversion is unavailable. Please refresh and try again.');
+  }
+
+  const converted = await converter({
+    blob: file,
+    toType: 'image/jpeg',
+    quality: 0.92,
+  });
+
+  const outputBlob = Array.isArray(converted) ? converted[0] : converted;
+  const jpgName = file.name.replace(/\.(heic|heif)$/i, '') + '.jpg';
+  return new File([outputBlob], jpgName, {
+    type: 'image/jpeg',
+    lastModified: Date.now(),
+  });
+}
+
 // ── Load images from Firebase ────────────────
 async function loadImages() {
   const snapshot = await getDocs(collection(db, 'images'));
@@ -650,45 +681,51 @@ closeBtn.addEventListener('click', closePanel);
 overlay.addEventListener('click', closePanel);
 
 fileInput.addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const aspectRatio = await readFileAspectRatio(file);
+  const originalFile = e.target.files[0];
+  if (!originalFile) return;
 
-  const storageRef = ref(storage, `images/${Date.now()}_${file.name}`);
-  const metadata = {
-    contentType: file.type || 'image/jpeg',
-  };
-  const uploadTask = uploadBytesResumable(storageRef, file, metadata);
+  try {
+    const file = await normalizeUploadFile(originalFile);
+    const aspectRatio = await readFileAspectRatio(file);
 
-  progressWrap.style.display = 'block';
-  statusEl.textContent = 'Uploading…';
+    const storageRef = ref(storage, `images/${Date.now()}_${file.name}`);
+    const metadata = {
+      contentType: file.type || 'image/jpeg',
+    };
+    const uploadTask = uploadBytesResumable(storageRef, file, metadata);
 
-  uploadTask.on('state_changed',
-    snapshot => {
-      const pct = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-      progressBar.style.width = pct + '%';
-    },
-    error => {
-      statusEl.textContent = 'Upload failed: ' + error.message;
-    },
-    async () => {
-      const url = await getDownloadURL(uploadTask.snapshot.ref);
-      await addDoc(collection(db, 'images'), {
-        url,
-        name: file.name,
-        size: file.size,
-        aspectRatio,
-        storagePath: storageRef.fullPath,
-        uploadedAt: serverTimestamp(),
-      });
+    progressWrap.style.display = 'block';
+    statusEl.textContent = 'Uploading…';
 
-      const newImage = { url, name: file.name, aspectRatio, storagePath: storageRef.fullPath };
-      allImages.push(newImage);
+    uploadTask.on('state_changed',
+      snapshot => {
+        const pct = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        progressBar.style.width = pct + '%';
+      },
+      error => {
+        statusEl.textContent = 'Upload failed: ' + error.message;
+      },
+      async () => {
+        const url = await getDownloadURL(uploadTask.snapshot.ref);
+        await addDoc(collection(db, 'images'), {
+          url,
+          name: file.name,
+          size: file.size,
+          aspectRatio,
+          storagePath: storageRef.fullPath,
+          uploadedAt: serverTimestamp(),
+        });
 
-      statusEl.textContent = 'Upload complete!';
-      setTimeout(closePanel, 1200);
-    }
-  );
+        const newImage = { url, name: file.name, aspectRatio, storagePath: storageRef.fullPath };
+        allImages.push(newImage);
+
+        statusEl.textContent = 'Upload complete!';
+        setTimeout(closePanel, 1200);
+      }
+    );
+  } catch (error) {
+    statusEl.textContent = 'Upload failed: ' + error.message;
+  }
 });
 
 window.addEventListener('resize', queueRender);
