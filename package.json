@@ -1,0 +1,10 @@
+{
+  "name": "kbh-arkiv",
+  "private": true,
+  "scripts": {
+    "verify:functions": "node scripts/verify-functions.js",
+    "deploy": "npm run verify:functions && bash scripts/remove-legacy-function.sh && firebase deploy",
+    "deploy:hosting": "firebase deploy --only hosting",
+    "deploy:functions": "npm run verify:functions && bash scripts/remove-legacy-function.sh && firebase deploy --only functions"
+  }
+}

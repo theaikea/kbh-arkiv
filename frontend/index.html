@@ -4,11 +4,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="color-scheme" content="light" />
   <title>KBH Arkiv</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Pavanam&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./styles/collection.css?v=6" />
+  <link rel="stylesheet" href="./styles/collection.css?v=34" />
 </head>
 <body>
 
@@ -66,7 +68,7 @@
   </div>
 
   <div class="sidebar-footer">
-    En fælles åben billedesamling af Københavns detaljer skabt af jer.
+    En fælles åben billedesamling af Københavns detaljer.
   </div>
 
   <div class="sidebar-logos" aria-label="Partner logos">
@@ -91,13 +93,78 @@
   <button id="close-btn">Close</button>
 </div>
 
+<div id="search-panel" aria-hidden="true">
+  <div class="search-bar">
+    <img class="search-bar-icon" src="./icons/søg-icon.svg" alt="" width="13" height="15" />
+    <div class="search-field">
+      <input
+        type="search"
+        id="search-input"
+        placeholder="Hvad leder du efter?"
+        autocomplete="off"
+        aria-label="Hvad leder du efter?"
+      />
+    </div>
+    <button type="button" id="search-close" class="search-close" aria-label="Luk søgning">×</button>
+  </div>
+  <p id="search-hint" class="search-hint" hidden></p>
+</div>
+
+<div id="filter-panel" aria-hidden="true">
+  <button type="button" id="filter-close" class="filter-close" aria-label="Luk filter">×</button>
+
+  <section class="filter-section">
+    <h3 class="filter-heading">BYDELE</h3>
+    <div class="filter-grid filter-grid--districts" id="filter-districts"></div>
+  </section>
+
+  <section class="filter-section">
+    <h3 class="filter-heading">FARVER</h3>
+    <div class="filter-grid filter-grid--colors" id="filter-colors"></div>
+  </section>
+
+  <section class="filter-section filter-section--years">
+    <h3 class="filter-heading">ÅRSTAL</h3>
+    <div class="filter-years">
+      <input type="number" id="filter-year-from" class="filter-year-input" min="1850" max="2100" step="1" aria-label="Fra år" />
+      <span class="filter-year-sep" aria-hidden="true">—</span>
+      <input type="number" id="filter-year-to" class="filter-year-input" min="1850" max="2100" step="1" aria-label="Til år" />
+    </div>
+  </section>
+</div>
+
+<div id="image-detail" class="image-detail" aria-hidden="true" hidden>
+  <aside id="image-detail-panel" class="image-detail-panel">
+    <dl class="image-detail-meta">
+      <div class="image-detail-meta-row">
+        <dt>BYDEL</dt>
+        <dd id="image-detail-district"></dd>
+      </div>
+      <div class="image-detail-meta-row">
+        <dt>ÅRSTAL</dt>
+        <dd id="image-detail-year"></dd>
+      </div>
+      <div class="image-detail-meta-row">
+        <dt>FARVER</dt>
+        <dd id="image-detail-colors"></dd>
+      </div>
+      <div class="image-detail-meta-row image-detail-meta-row--caption">
+        <dt>BESKRIVELSE</dt>
+        <dd id="image-detail-caption"></dd>
+      </div>
+    </dl>
+  </aside>
+</div>
+
+<button type="button" id="image-detail-close" class="image-detail-close" aria-label="Luk billede" hidden>×</button>
+
 <div id="canvas-wrap">
   <div id="canvas"></div>
-  <div id="loading">Loading images...</div>
+  <div id="canvas-empty" class="canvas-empty" hidden></div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://unpkg.com/heic2any@0.0.4/dist/heic2any.min.js"></script>
-<script type="module" src="./scripts/collection.js?v=5"></script>
+<script type="module" src="./scripts/collection.js?v=52"></script>
 </body>
 </html>

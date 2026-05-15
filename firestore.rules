@@ -4,12 +4,26 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /images/{imageId} {
       allow read: if true;
-      allow create: if request.resource.data.keys().hasAll(['url', 'name', 'uploadedAt', 'size'])
+      // Clients may only set upload fields; AI enrichment is written by Cloud Functions (Admin SDK).
+      allow create: if request.resource.data.keys().hasOnly([
+                      'url', 'name', 'uploadedAt', 'size', 'aspectRatio', 'storagePath',
+                      'photoYear', 'latitude', 'longitude', 'district', 'locationSource'
+                    ])
+                    && request.resource.data.keys().hasAll(['url', 'name', 'uploadedAt', 'size'])
                     && request.resource.data.url is string
                     && request.resource.data.name is string
-                    && request.resource.data.size is number;
+                    && request.resource.data.size is number
+                    && (!('aspectRatio' in request.resource.data) || request.resource.data.aspectRatio is number)
+                    && (!('storagePath' in request.resource.data) || request.resource.data.storagePath is string)
+                    && (!('photoYear' in request.resource.data) || request.resource.data.photoYear is number)
+                    && (!('latitude' in request.resource.data) || request.resource.data.latitude is number)
+                    && (!('longitude' in request.resource.data) || request.resource.data.longitude is number)
+                    && (!('district' in request.resource.data) || request.resource.data.district is string)
+                    && (!('locationSource' in request.resource.data) || request.resource.data.locationSource is string);
       allow delete: if true;
-      allow update: if false;
+      // Client may request AI enrichment for existing images (triggers Cloud Function).
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['enrichmentRequested'])
+                    && request.resource.data.enrichmentRequested == true;
     }
   }
 }
